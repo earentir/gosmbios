@@ -11,8 +11,10 @@ import (
 	"github.com/earentir/gosmbios/types/type16"
 	"github.com/earentir/gosmbios/types/type17"
 	"github.com/earentir/gosmbios/types/type2"
+	"github.com/earentir/gosmbios/types/type22"
 	"github.com/earentir/gosmbios/types/type3"
 	"github.com/earentir/gosmbios/types/type4"
+	"github.com/earentir/gosmbios/types/type43"
 	"github.com/earentir/gosmbios/types/type7"
 )
 
@@ -47,6 +49,12 @@ func main() {
 
 	// Memory Information (Type 16/17)
 	printMemoryInfo(sm)
+
+	// TPM Information (Type 43)
+	printTPMInfo(sm)
+
+	// Battery Information (Type 22)
+	printBatteryInfo(sm)
 }
 
 func printBIOSInfo(sm *gosmbios.SMBIOS) {
@@ -224,5 +232,46 @@ func printMemoryInfo(sm *gosmbios.SMBIOS) {
 	}
 
 	fmt.Printf("  Total Memory: %d GB\n", totalMemory/1024)
+	fmt.Println()
+}
+
+func printTPMInfo(sm *gosmbios.SMBIOS) {
+	tpm, err := type43.Get(sm)
+	if err != nil {
+		fmt.Printf("TPM Information: Not available\n\n")
+		return
+	}
+
+	fmt.Println("=== TPM Device ===")
+	fmt.Printf("  Vendor ID:      %s\n", tpm.VendorIDString())
+	fmt.Printf("  Spec Version:   %s\n", tpm.SpecVersionString())
+	fmt.Printf("  Firmware:       %s\n", tpm.FirmwareVersionString())
+	fmt.Printf("  Family:         %s\n", tpm.Family())
+	fmt.Printf("  Description:    %s\n", tpm.Description)
+	fmt.Printf("  Supported:      %v\n", tpm.IsSupported())
+	fmt.Println()
+}
+
+func printBatteryInfo(sm *gosmbios.SMBIOS) {
+	batteries, err := type22.GetAll(sm)
+	if err != nil {
+		// Battery info is only available on laptops
+		return
+	}
+
+	fmt.Println("=== Portable Battery ===")
+	for i, bat := range batteries {
+		fmt.Printf("  Battery %d:\n", i+1)
+		fmt.Printf("    Name:         %s\n", bat.DeviceName)
+		fmt.Printf("    Location:     %s\n", bat.Location)
+		fmt.Printf("    Manufacturer: %s\n", bat.Manufacturer)
+		fmt.Printf("    Chemistry:    %s\n", bat.DeviceChemistry.String())
+		fmt.Printf("    Capacity:     %s\n", bat.DesignCapacityString())
+		fmt.Printf("    Voltage:      %s\n", bat.DesignVoltageString())
+		fmt.Printf("    Serial:       %s\n", bat.SerialNumber)
+		if bat.ManufactureDate != "" {
+			fmt.Printf("    Mfg Date:     %s\n", bat.ManufactureDate)
+		}
+	}
 	fmt.Println()
 }

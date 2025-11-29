@@ -73,9 +73,27 @@ Implement direct IOKit framework access via raw Mach syscalls without CGO.
 - [ ] Option 2: Remove macOS support
 - [ ] Option 3: Pure Go IOKit (major undertaking)
 
-## Other Future Enhancements
+## Completed Tasks
 
-- [ ] Add more SMBIOS types (Type 10, 13, 14, 15, 18-31, 33-46)
-- [ ] Add unit tests
+- [x] **All 47 SMBIOS types implemented** (Types 0-46, 126-127)
+  - Core types: 0, 1, 2, 3, 4, 7, 8, 9
+  - Memory types: 5, 6, 16, 17, 18, 19, 20, 33, 37
+  - Device types: 10, 21, 22, 41
+  - Management types: 34, 35, 36, 38, 42
+  - Power/thermal types: 23, 24, 25, 26, 27, 28, 29, 39
+  - Boot/firmware types: 31, 32, 43, 44, 45
+  - Other types: 11, 12, 13, 14, 15, 30, 40, 46, 127
+
+- [x] **CLI tools implemented**
+  - `cmd/info` - Human-readable SMBIOS information display
+  - `cmd/debug` - Raw debug output with hex dumps
+  - `cmd/dump` - Export to text, JSON, or raw hex formats
+  - `cmd/examples` - Basic usage examples
+
+## Future Enhancements
+
+- [ ] Add unit tests for all type parsers
 - [ ] Add benchmarks
-- [ ] Consider adding a CLI tool for dumping SMBIOS data
+- [ ] Add JSON output to info tool
+- [ ] Support for reading from file (for offline analysis)
+- [ ] Support for writing SMBIOS data (for testing/simulation)
