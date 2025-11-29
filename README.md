@@ -208,13 +208,12 @@ go test ./...
 ## Requirements
 
 - Go 1.21 or later
-- Linux: Read access to `/sys/firmware/dmi/tables/` (may need root)
+- Linux: Read access to `/sys/firmware/dmi/tables/` (needs root)
 - Windows: No special requirements
 - macOS: Command-line tools available (`ioreg`, `system_profiler`)
 
 ## License
-
-MIT License
+GNU General Public License v2.0
 
 ## Contributing
 
