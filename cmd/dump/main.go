@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -61,6 +62,42 @@ import (
 	"github.com/earentir/gosmbios/types/type8"
 	"github.com/earentir/gosmbios/types/type9"
 )
+
+// getSystemIdentifier returns a unique identifier for the system (UUID or serial)
+// suitable for use in a filename
+func getSystemIdentifier(sm *gosmbios.SMBIOS) string {
+	sys, err := type1.Get(sm)
+	if err != nil {
+		return ""
+	}
+
+	// Try UUID first (most unique)
+	if !sys.UUID.IsZero() && !sys.UUID.IsInvalid() {
+		// Return UUID without dashes for cleaner filenames
+		return strings.ReplaceAll(sys.UUID.String(), "-", "")
+	}
+
+	// Fall back to serial number
+	if sys.SerialNumber != "" && sys.SerialNumber != "To Be Filled By O.E.M." {
+		return sanitizeFilename(sys.SerialNumber)
+	}
+
+	return ""
+}
+
+// sanitizeFilename removes/replaces characters that are invalid in filenames
+func sanitizeFilename(s string) string {
+	// Remove or replace characters that are problematic in filenames
+	re := regexp.MustCompile(`[<>:"/\\|?*\x00-\x1f]`)
+	s = re.ReplaceAllString(s, "_")
+	// Trim spaces and dots from ends
+	s = strings.Trim(s, " .")
+	// Limit length
+	if len(s) > 64 {
+		s = s[:64]
+	}
+	return s
+}
 
 // OutputFormat represents the output format type
 type OutputFormat string
@@ -141,13 +178,25 @@ func main() {
 
 	// Handle binary format specially (uses WriteToFile directly)
 	if OutputFormat(strings.ToLower(*format)) == FormatBin {
-		if *outputFile == "" {
-			fmt.Fprintf(os.Stderr, "Error: -o <file> is required for binary format\n")
-			os.Exit(1)
+		binFile := *outputFile
+
+		// Auto-generate filename from system UUID if not specified
+		if binFile == "" {
+			identifier := getSystemIdentifier(sm)
+			if identifier == "" {
+				// Fall back to timestamp if no unique identifier
+				identifier = time.Now().Format("20060102-150405")
+			}
+			binFile = identifier + ".smbios"
+		}
+
+		// Ensure .smbios extension
+		if !strings.HasSuffix(strings.ToLower(binFile), ".smbios") {
+			binFile = binFile + ".smbios"
 		}
 
 		// Create directory if needed
-		dir := filepath.Dir(*outputFile)
+		dir := filepath.Dir(binFile)
 		if dir != "." && dir != "" {
 			if err := os.MkdirAll(dir, 0755); err != nil {
 				fmt.Fprintf(os.Stderr, "Error creating directory: %v\n", err)
@@ -155,20 +204,20 @@ func main() {
 			}
 		}
 
-		if err := sm.WriteToFile(*outputFile); err != nil {
+		if err := sm.WriteToFile(binFile); err != nil {
 			fmt.Fprintf(os.Stderr, "Error writing binary dump: %v\n", err)
 			os.Exit(1)
 		}
 
-		fmt.Fprintf(os.Stderr, "Raw SMBIOS dump written to: %s\n", *outputFile)
+		fmt.Fprintf(os.Stderr, "Raw SMBIOS dump written to: %s\n", binFile)
 		fmt.Fprintf(os.Stderr, "\n")
 		fmt.Fprintf(os.Stderr, "This file contains the raw SMBIOS table data and can be read back\n")
 		fmt.Fprintf(os.Stderr, "by gosmbios tools as if reading from the system. All structure types\n")
 		fmt.Fprintf(os.Stderr, "(including unknown/future types) are preserved.\n")
 		fmt.Fprintf(os.Stderr, "\n")
-		fmt.Fprintf(os.Stderr, "Read with: smbiosdump -i %s\n", *outputFile)
-		fmt.Fprintf(os.Stderr, "      or:  smbiosinfo -i %s\n", *outputFile)
-		fmt.Fprintf(os.Stderr, "      or:  smbiosdebug -i %s\n", *outputFile)
+		fmt.Fprintf(os.Stderr, "Read with: smbiosdump -i %s\n", binFile)
+		fmt.Fprintf(os.Stderr, "      or:  smbiosinfo -i %s\n", binFile)
+		fmt.Fprintf(os.Stderr, "      or:  smbiosdebug -i %s\n", binFile)
 		return
 	}
 
@@ -220,8 +269,8 @@ func printUsage() {
 	fmt.Println("Usage: smbiosdump [options]")
 	fmt.Println()
 	fmt.Println("Options:")
-	fmt.Println("  -o <file>   Output file path (default: stdout for text/json/raw)")
-	fmt.Println("  -i <file>   Input file (raw binary dump) - read from dump instead of system")
+	fmt.Println("  -o <file>   Output file path (default: auto-named for bin, stdout for others)")
+	fmt.Println("  -i <file>   Input file (.smbios dump) - read from dump instead of system")
 	fmt.Println("  -f <format> Output format: text, json, raw, bin (default: text)")
 	fmt.Println("  -h          Show this help message")
 	fmt.Println()
@@ -230,19 +279,20 @@ func printUsage() {
 	fmt.Println("  json        JSON format with all structure data")
 	fmt.Println("  raw         Raw hexadecimal dump of all structures (text-based)")
 	fmt.Println("  bin         Raw binary dump - stores SMBIOS table exactly as in memory")
-	fmt.Println("              This format preserves ALL data including unknown/future types")
-	fmt.Println("              and can be read back by gosmbios tools as if reading from system")
+	fmt.Println("              Auto-names file as <UUID>.smbios if -o not specified")
+	fmt.Println("              Preserves ALL data including unknown/future types")
 	fmt.Println()
 	fmt.Println("Examples:")
+	fmt.Println("  smbiosdump -f bin                        # Auto-named: <UUID>.smbios")
+	fmt.Println("  smbiosdump -o mypc.smbios -f bin         # Custom name with .smbios extension")
 	fmt.Println("  smbiosdump -o smbios.txt                 # Dump as text")
 	fmt.Println("  smbiosdump -o smbios.json -f json        # Dump as JSON")
-	fmt.Println("  smbiosdump -o smbios.bin -f bin          # Dump raw binary (for later analysis)")
-	fmt.Println("  smbiosdump -i smbios.bin                 # Read from raw dump (like reading system)")
-	fmt.Println("  smbiosdump -i smbios.bin -o new.json -f json  # Convert raw dump to JSON")
+	fmt.Println("  smbiosdump -i 4C4C4544.smbios            # Read from dump file")
+	fmt.Println("  smbiosdump -i dump.smbios -f json        # Convert dump to JSON")
 	fmt.Println()
 	fmt.Println("The binary format (-f bin) is recommended for archiving SMBIOS data.")
-	fmt.Println("It stores the raw table bytes and can be analyzed later even if new")
-	fmt.Println("SMBIOS types are added - the data is parsed fresh when reading the file.")
+	fmt.Println("Files are named using the system's UUID for easy identification.")
+	fmt.Println("The .smbios extension is automatically added if not present.")
 }
 
 func dumpText(sm *gosmbios.SMBIOS, w *os.File) error {
