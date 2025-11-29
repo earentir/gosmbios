@@ -138,3 +138,16 @@ func (sm *SMBIOS) GetStructure(structType uint8) *Structure {
 func Read() (*SMBIOS, error) {
 	return readSMBIOS()
 }
+
+// ReadFromFile reads SMBIOS data from a binary dump file
+// The file format is a simple binary format:
+// - 32 bytes: Entry point header
+// - Remaining: Raw SMBIOS table data
+func ReadFromFile(filename string) (*SMBIOS, error) {
+	return readSMBIOSFromFile(filename)
+}
+
+// WriteToFile writes SMBIOS data to a binary dump file
+func (sm *SMBIOS) WriteToFile(filename string) error {
+	return writeSMBIOSToFile(sm, filename)
+}

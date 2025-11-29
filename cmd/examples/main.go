@@ -2,6 +2,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -19,11 +20,37 @@ import (
 )
 
 func main() {
-	// Read SMBIOS data from the system
-	sm, err := gosmbios.Read()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading SMBIOS: %v\n", err)
-		os.Exit(1)
+	inputFile := flag.String("i", "", "Input file (gosmbios dump format)")
+	showHelp := flag.Bool("h", false, "Show help")
+	flag.Parse()
+
+	if *showHelp {
+		fmt.Println("smbiosexamples - Example usage of gosmbios")
+		fmt.Println()
+		fmt.Println("Usage: smbiosexamples [options]")
+		fmt.Println()
+		fmt.Println("Options:")
+		fmt.Println("  -i <file>   Read from gosmbios dump file instead of system")
+		fmt.Println("  -h          Show this help message")
+		os.Exit(0)
+	}
+
+	var sm *gosmbios.SMBIOS
+	var err error
+
+	if *inputFile != "" {
+		sm, err = gosmbios.ReadFromFile(*inputFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading dump file: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("(Reading from dump file: %s)\n\n", *inputFile)
+	} else {
+		sm, err = gosmbios.Read()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading SMBIOS: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	fmt.Printf("SMBIOS Version: %s\n", sm.EntryPoint.String())

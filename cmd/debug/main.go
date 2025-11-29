@@ -3,6 +3,7 @@ package main
 
 import (
 	"encoding/hex"
+	"flag"
 	"fmt"
 	"os"
 
@@ -33,6 +34,7 @@ import (
 	"github.com/earentir/gosmbios/types/type29"
 	"github.com/earentir/gosmbios/types/type3"
 	"github.com/earentir/gosmbios/types/type30"
+	"github.com/earentir/gosmbios/types/type31"
 	"github.com/earentir/gosmbios/types/type32"
 	"github.com/earentir/gosmbios/types/type33"
 	"github.com/earentir/gosmbios/types/type34"
@@ -44,19 +46,50 @@ import (
 	"github.com/earentir/gosmbios/types/type4"
 	"github.com/earentir/gosmbios/types/type40"
 	"github.com/earentir/gosmbios/types/type41"
+	"github.com/earentir/gosmbios/types/type42"
 	"github.com/earentir/gosmbios/types/type43"
+	"github.com/earentir/gosmbios/types/type44"
 	"github.com/earentir/gosmbios/types/type45"
 	"github.com/earentir/gosmbios/types/type46"
+	"github.com/earentir/gosmbios/types/type5"
+	"github.com/earentir/gosmbios/types/type6"
 	"github.com/earentir/gosmbios/types/type7"
 	"github.com/earentir/gosmbios/types/type8"
 	"github.com/earentir/gosmbios/types/type9"
 )
 
 func main() {
-	sm, err := gosmbios.Read()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading SMBIOS: %v\n", err)
-		os.Exit(1)
+	inputFile := flag.String("i", "", "Input file (gosmbios dump format)")
+	showHelp := flag.Bool("h", false, "Show help")
+	flag.Parse()
+
+	if *showHelp {
+		fmt.Println("smbiosdebug - Debug SMBIOS data")
+		fmt.Println()
+		fmt.Println("Usage: smbiosdebug [options]")
+		fmt.Println()
+		fmt.Println("Options:")
+		fmt.Println("  -i <file>   Read from gosmbios dump file instead of system")
+		fmt.Println("  -h          Show this help message")
+		os.Exit(0)
+	}
+
+	var sm *gosmbios.SMBIOS
+	var err error
+
+	if *inputFile != "" {
+		sm, err = gosmbios.ReadFromFile(*inputFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading dump file: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("(Reading from dump file: %s)\n\n", *inputFile)
+	} else {
+		sm, err = gosmbios.Read()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading SMBIOS: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	fmt.Println("================================================================================")
@@ -101,6 +134,8 @@ func main() {
 	debugType2(sm)
 	debugType3(sm)
 	debugType4(sm)
+	debugType5(sm)
+	debugType6(sm)
 	debugType7(sm)
 	debugType8(sm)
 	debugType9(sm)
@@ -125,6 +160,7 @@ func main() {
 	debugType28(sm)
 	debugType29(sm)
 	debugType30(sm)
+	debugType31(sm)
 	debugType32(sm)
 	debugType33(sm)
 	debugType34(sm)
@@ -135,7 +171,9 @@ func main() {
 	debugType39(sm)
 	debugType40(sm)
 	debugType41(sm)
+	debugType42(sm)
 	debugType43(sm)
+	debugType44(sm)
 	debugType45(sm)
 	debugType46(sm)
 
@@ -341,6 +379,67 @@ func debugType4(sm *gosmbios.SMBIOS) {
 			fmt.Printf("  L1 Cache:        0x%04X\n", proc.L1CacheHandle)
 			fmt.Printf("  L2 Cache:        0x%04X\n", proc.L2CacheHandle)
 			fmt.Printf("  L3 Cache:        0x%04X\n", proc.L3CacheHandle)
+		}
+		printStrings(s.Strings, "  ")
+	}
+}
+
+func debugType5(sm *gosmbios.SMBIOS) {
+	structs := sm.GetStructures(5)
+	if len(structs) == 0 {
+		return
+	}
+
+	fmt.Println("\n--- Type 5: Memory Controller Information (Obsolete) ---")
+	for i, s := range structs {
+		fmt.Printf("[%d]\n", i)
+		printStructureHeader(&s)
+
+		mc, err := type5.Parse(&s)
+		if err != nil {
+			fmt.Printf("  Parse Error: %v\n", err)
+			printHexDump(s.Data, "  ")
+		} else {
+			fmt.Printf("  Error Detecting: %s (0x%02X)\n", mc.ErrorDetectingMethod.String(), uint8(mc.ErrorDetectingMethod))
+			fmt.Printf("  Error Correcting:%s (0x%02X)\n", mc.ErrorCorrectingCapability.String(), uint8(mc.ErrorCorrectingCapability))
+			fmt.Printf("  Supported Interleave: %s (0x%02X)\n", mc.SupportedInterleave.String(), uint8(mc.SupportedInterleave))
+			fmt.Printf("  Current Interleave:   %s (0x%02X)\n", mc.CurrentInterleave.String(), uint8(mc.CurrentInterleave))
+			fmt.Printf("  Max Module Size: %d MB\n", mc.MaxModuleSizeMB())
+			fmt.Printf("  Supported Speeds:%s\n", mc.SupportedSpeeds.String())
+			fmt.Printf("  Voltage:         %s\n", mc.MemoryModuleVoltage.String())
+			fmt.Printf("  Num Slots:       %d\n", mc.NumberOfAssociatedMemorySlots)
+			for j, h := range mc.MemoryModuleConfigHandles {
+				fmt.Printf("    Slot %d Handle: 0x%04X\n", j, h)
+			}
+		}
+		printStrings(s.Strings, "  ")
+	}
+}
+
+func debugType6(sm *gosmbios.SMBIOS) {
+	structs := sm.GetStructures(6)
+	if len(structs) == 0 {
+		return
+	}
+
+	fmt.Println("\n--- Type 6: Memory Module Information (Obsolete) ---")
+	for i, s := range structs {
+		fmt.Printf("[%d]\n", i)
+		printStructureHeader(&s)
+
+		mm, err := type6.Parse(&s)
+		if err != nil {
+			fmt.Printf("  Parse Error: %v\n", err)
+			printHexDump(s.Data, "  ")
+		} else {
+			fmt.Printf("  Socket:          %q\n", mm.SocketDesignation)
+			fmt.Printf("  Bank Connection: %s\n", mm.BankConnectionString())
+			fmt.Printf("  Current Speed:   %d ns\n", mm.CurrentSpeed)
+			fmt.Printf("  Memory Type:     %s\n", mm.CurrentMemoryType.String())
+			fmt.Printf("  Installed Size:  %s\n", mm.InstalledSize.String())
+			fmt.Printf("  Enabled Size:    %s\n", mm.EnabledSize.String())
+			fmt.Printf("  Error Status:    %s\n", mm.ErrorStatus.String())
+			fmt.Printf("  Is Installed:    %v\n", mm.IsInstalled())
 		}
 		printStrings(s.Strings, "  ")
 	}
@@ -1030,6 +1129,31 @@ func debugType30(sm *gosmbios.SMBIOS) {
 	}
 }
 
+func debugType31(sm *gosmbios.SMBIOS) {
+	structs := sm.GetStructures(31)
+	if len(structs) == 0 {
+		return
+	}
+
+	fmt.Println("\n--- Type 31: Boot Integrity Services Entry Point ---")
+	for i, s := range structs {
+		fmt.Printf("[%d]\n", i)
+		printStructureHeader(&s)
+
+		bis, err := type31.Parse(&s)
+		if err != nil {
+			fmt.Printf("  Parse Error: %v\n", err)
+			printHexDump(s.Data, "  ")
+		} else {
+			fmt.Printf("  Checksum:        0x%02X\n", bis.Checksum)
+			fmt.Printf("  Reserved1:       0x%02X\n", bis.Reserved1)
+			fmt.Printf("  Reserved2:       0x%04X\n", bis.Reserved2)
+			fmt.Printf("  BIS Entry Point: 0x%08X\n", bis.BISEntryPoint)
+		}
+		printStrings(s.Strings, "  ")
+	}
+}
+
 func debugType32(sm *gosmbios.SMBIOS) {
 	structs := sm.GetStructures(32)
 	if len(structs) == 0 {
@@ -1311,6 +1435,39 @@ func debugType41(sm *gosmbios.SMBIOS) {
 	}
 }
 
+func debugType42(sm *gosmbios.SMBIOS) {
+	structs := sm.GetStructures(42)
+	if len(structs) == 0 {
+		return
+	}
+
+	fmt.Println("\n--- Type 42: Management Controller Host Interface ---")
+	for i, s := range structs {
+		fmt.Printf("[%d]\n", i)
+		printStructureHeader(&s)
+
+		mchi, err := type42.Parse(&s)
+		if err != nil {
+			fmt.Printf("  Parse Error: %v\n", err)
+			printHexDump(s.Data, "  ")
+		} else {
+			fmt.Printf("  Interface Type:  %s (0x%02X)\n", mchi.InterfaceType.String(), uint8(mchi.InterfaceType))
+			fmt.Printf("  IF Data Length:  %d bytes\n", len(mchi.InterfaceTypeSpecificData))
+			if len(mchi.InterfaceTypeSpecificData) > 0 {
+				fmt.Printf("  IF Data:         %s\n", hex.EncodeToString(mchi.InterfaceTypeSpecificData))
+			}
+			fmt.Printf("  Protocol Records:%d\n", len(mchi.ProtocolRecords))
+			for j, pr := range mchi.ProtocolRecords {
+				fmt.Printf("    Protocol %d: %s (0x%02X)\n", j, pr.ProtocolType.String(), uint8(pr.ProtocolType))
+				if len(pr.ProtocolTypeSpecific) > 0 {
+					fmt.Printf("      Data: %s\n", hex.EncodeToString(pr.ProtocolTypeSpecific))
+				}
+			}
+		}
+		printStrings(s.Strings, "  ")
+	}
+}
+
 func debugType43(sm *gosmbios.SMBIOS) {
 	structs := sm.GetStructures(43)
 	if len(structs) == 0 {
@@ -1335,6 +1492,33 @@ func debugType43(sm *gosmbios.SMBIOS) {
 			fmt.Printf("  OEM-Defined:     0x%08X\n", tpm.OEMDefined)
 			fmt.Printf("  Family:          %s\n", tpm.Family())
 			fmt.Printf("  Supported:       %v\n", tpm.IsSupported())
+		}
+		printStrings(s.Strings, "  ")
+	}
+}
+
+func debugType44(sm *gosmbios.SMBIOS) {
+	structs := sm.GetStructures(44)
+	if len(structs) == 0 {
+		return
+	}
+
+	fmt.Println("\n--- Type 44: Processor Additional Information ---")
+	for i, s := range structs {
+		fmt.Printf("[%d]\n", i)
+		printStructureHeader(&s)
+
+		pai, err := type44.Parse(&s)
+		if err != nil {
+			fmt.Printf("  Parse Error: %v\n", err)
+			printHexDump(s.Data, "  ")
+		} else {
+			fmt.Printf("  Referenced Handle: 0x%04X\n", pai.ReferencedHandle)
+			fmt.Printf("  Block Length:    %d\n", pai.ProcessorSpecificBlock.Length)
+			fmt.Printf("  Processor Type:  %s (0x%02X)\n", pai.ProcessorSpecificBlock.ProcessorType.String(), uint8(pai.ProcessorSpecificBlock.ProcessorType))
+			if len(pai.ProcessorSpecificBlock.Data) > 0 {
+				fmt.Printf("  Block Data:      %s\n", hex.EncodeToString(pai.ProcessorSpecificBlock.Data))
+			}
 		}
 		printStrings(s.Strings, "  ")
 	}
@@ -1400,15 +1584,15 @@ func debugType46(sm *gosmbios.SMBIOS) {
 func debugRemainingTypes(sm *gosmbios.SMBIOS, typeCounts map[uint8]int) {
 	// Types we've already handled
 	handled := map[uint8]bool{
-		0: true, 1: true, 2: true, 3: true, 4: true,
+		0: true, 1: true, 2: true, 3: true, 4: true, 5: true, 6: true,
 		7: true, 8: true, 9: true, 10: true, 11: true,
 		12: true, 13: true, 14: true, 15: true, 16: true,
 		17: true, 18: true, 19: true, 20: true, 21: true,
 		22: true, 23: true, 24: true, 25: true, 26: true,
-		27: true, 28: true, 29: true, 30: true, 32: true,
+		27: true, 28: true, 29: true, 30: true, 31: true, 32: true,
 		33: true, 34: true, 35: true, 36: true, 37: true,
-		38: true, 39: true, 40: true, 41: true, 43: true,
-		45: true, 46: true, 127: true,
+		38: true, 39: true, 40: true, 41: true, 42: true, 43: true,
+		44: true, 45: true, 46: true, 127: true,
 	}
 
 	for structType := range typeCounts {

@@ -2,6 +2,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -14,31 +15,81 @@ import (
 	"github.com/earentir/gosmbios/types/type12"
 	"github.com/earentir/gosmbios/types/type13"
 	"github.com/earentir/gosmbios/types/type127"
+	"github.com/earentir/gosmbios/types/type14"
+	"github.com/earentir/gosmbios/types/type15"
 	"github.com/earentir/gosmbios/types/type16"
 	"github.com/earentir/gosmbios/types/type17"
+	"github.com/earentir/gosmbios/types/type18"
+	"github.com/earentir/gosmbios/types/type19"
 	"github.com/earentir/gosmbios/types/type2"
+	"github.com/earentir/gosmbios/types/type20"
 	"github.com/earentir/gosmbios/types/type21"
 	"github.com/earentir/gosmbios/types/type22"
+	"github.com/earentir/gosmbios/types/type23"
+	"github.com/earentir/gosmbios/types/type24"
+	"github.com/earentir/gosmbios/types/type25"
 	"github.com/earentir/gosmbios/types/type26"
 	"github.com/earentir/gosmbios/types/type27"
 	"github.com/earentir/gosmbios/types/type28"
+	"github.com/earentir/gosmbios/types/type29"
 	"github.com/earentir/gosmbios/types/type3"
+	"github.com/earentir/gosmbios/types/type30"
+	"github.com/earentir/gosmbios/types/type31"
 	"github.com/earentir/gosmbios/types/type32"
+	"github.com/earentir/gosmbios/types/type33"
+	"github.com/earentir/gosmbios/types/type34"
+	"github.com/earentir/gosmbios/types/type35"
+	"github.com/earentir/gosmbios/types/type36"
+	"github.com/earentir/gosmbios/types/type37"
 	"github.com/earentir/gosmbios/types/type38"
 	"github.com/earentir/gosmbios/types/type39"
 	"github.com/earentir/gosmbios/types/type4"
+	"github.com/earentir/gosmbios/types/type40"
 	"github.com/earentir/gosmbios/types/type41"
+	"github.com/earentir/gosmbios/types/type42"
 	"github.com/earentir/gosmbios/types/type43"
+	"github.com/earentir/gosmbios/types/type44"
+	"github.com/earentir/gosmbios/types/type45"
+	"github.com/earentir/gosmbios/types/type46"
+	"github.com/earentir/gosmbios/types/type5"
+	"github.com/earentir/gosmbios/types/type6"
 	"github.com/earentir/gosmbios/types/type7"
 	"github.com/earentir/gosmbios/types/type8"
 	"github.com/earentir/gosmbios/types/type9"
 )
 
 func main() {
-	sm, err := gosmbios.Read()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading SMBIOS: %v\n", err)
-		os.Exit(1)
+	inputFile := flag.String("i", "", "Input file (gosmbios dump format)")
+	showHelp := flag.Bool("h", false, "Show help")
+	flag.Parse()
+
+	if *showHelp {
+		fmt.Println("smbiosinfo - Display SMBIOS information")
+		fmt.Println()
+		fmt.Println("Usage: smbiosinfo [options]")
+		fmt.Println()
+		fmt.Println("Options:")
+		fmt.Println("  -i <file>   Read from gosmbios dump file instead of system")
+		fmt.Println("  -h          Show this help message")
+		os.Exit(0)
+	}
+
+	var sm *gosmbios.SMBIOS
+	var err error
+
+	if *inputFile != "" {
+		sm, err = gosmbios.ReadFromFile(*inputFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading dump file: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("(Reading from dump file: %s)\n\n", *inputFile)
+	} else {
+		sm, err = gosmbios.Read()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading SMBIOS: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	// Print header
@@ -61,25 +112,48 @@ func main() {
 	printBaseboard(sm)
 	printChassis(sm)
 	printProcessors(sm)
+	printMemoryController(sm)
+	printMemoryModules(sm)
 	printCaches(sm)
 	printPorts(sm)
 	printSlots(sm)
 	printOnboardDevices(sm)
-	printOnboardDevicesExtended(sm)
 	printOEMStrings(sm)
 	printSystemConfig(sm)
 	printBIOSLanguage(sm)
+	printGroupAssociations(sm)
+	printEventLog(sm)
 	printMemoryArrays(sm)
 	printMemoryDevices(sm)
+	printMemoryError32(sm)
+	printMemoryArrayMap(sm)
+	printMemoryDeviceMap(sm)
 	printPointingDevices(sm)
 	printBatteries(sm)
+	printSystemReset(sm)
+	printHardwareSecurity(sm)
+	printSystemPowerControls(sm)
 	printVoltageProbes(sm)
 	printCoolingDevices(sm)
 	printTemperatureProbes(sm)
+	printCurrentProbes(sm)
+	printOOBRemoteAccess(sm)
+	printBISEntryPoint(sm)
 	printBootInfo(sm)
+	printMemoryError64(sm)
+	printManagementDevices(sm)
+	printManagementDeviceComponents(sm)
+	printManagementDeviceThresholds(sm)
+	printMemoryChannels(sm)
 	printIPMI(sm)
 	printPowerSupplies(sm)
+	printAdditionalInfo(sm)
+	printOnboardDevicesExtended(sm)
+	printMCHI(sm)
 	printTPM(sm)
+	printProcessorAdditional(sm)
+	printFirmwareInventory(sm)
+	printStringProperties(sm)
 	printEndOfTable(sm)
 	printUnknownTypes(sm, typeCounts)
 
@@ -258,6 +332,52 @@ func printProcessors(sm *gosmbios.SMBIOS) {
 	}
 }
 
+func printMemoryController(sm *gosmbios.SMBIOS) {
+	controllers, err := type5.GetAll(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 5: Memory Controller Information (Obsolete)")
+	fmt.Println("================================================================================")
+	for i, mc := range controllers {
+		if len(controllers) > 1 {
+			fmt.Printf("  Controller %d:\n", i+1)
+		}
+		fmt.Printf("  Error Detecting:        %s\n", mc.ErrorDetectingMethod.String())
+		fmt.Printf("  Error Correcting:       %s\n", mc.ErrorCorrectingCapability.String())
+		fmt.Printf("  Supported Interleave:   %s\n", mc.SupportedInterleave.String())
+		fmt.Printf("  Current Interleave:     %s\n", mc.CurrentInterleave.String())
+		fmt.Printf("  Max Module Size:        %d MB\n", mc.MaxModuleSizeMB())
+		fmt.Printf("  Supported Speeds:       %s\n", mc.SupportedSpeeds.String())
+		fmt.Printf("  Voltage:                %s\n", mc.MemoryModuleVoltage.String())
+		fmt.Printf("  Associated Slots:       %d\n", mc.NumberOfAssociatedMemorySlots)
+		fmt.Println()
+	}
+}
+
+func printMemoryModules(sm *gosmbios.SMBIOS) {
+	modules, err := type6.GetAll(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 6: Memory Module Information (Obsolete)")
+	fmt.Println("================================================================================")
+	for _, mm := range modules {
+		fmt.Printf("  %s:\n", mm.SocketDesignation)
+		fmt.Printf("    Bank Connection:      %s\n", mm.BankConnectionString())
+		fmt.Printf("    Current Speed:        %d ns\n", mm.CurrentSpeed)
+		fmt.Printf("    Memory Type:          %s\n", mm.CurrentMemoryType.String())
+		fmt.Printf("    Installed Size:       %s\n", mm.InstalledSize.String())
+		fmt.Printf("    Enabled Size:         %s\n", mm.EnabledSize.String())
+		fmt.Printf("    Error Status:         %s\n", mm.ErrorStatus.String())
+	}
+	fmt.Println()
+}
+
 func printCaches(sm *gosmbios.SMBIOS) {
 	caches, err := type7.GetAll(sm)
 	if err != nil {
@@ -344,25 +464,6 @@ func printOnboardDevices(sm *gosmbios.SMBIOS) {
 	fmt.Println()
 }
 
-func printOnboardDevicesExtended(sm *gosmbios.SMBIOS) {
-	devices, err := type41.GetAll(sm)
-	if err != nil {
-		return
-	}
-
-	fmt.Println("================================================================================")
-	fmt.Println("Type 41: Onboard Devices Extended Information")
-	fmt.Println("================================================================================")
-	for _, dev := range devices {
-		fmt.Printf("  %s:\n", dev.ReferenceDesignation)
-		fmt.Printf("    Type:                 %s\n", dev.TypeString())
-		fmt.Printf("    Status:               %s\n", dev.StatusString())
-		fmt.Printf("    Instance:             %d\n", dev.DeviceTypeInstance)
-		fmt.Printf("    Bus Address:          %s\n", dev.PCIAddress())
-	}
-	fmt.Println()
-}
-
 func printOEMStrings(sm *gosmbios.SMBIOS) {
 	oems, err := type11.GetAll(sm)
 	if err != nil {
@@ -412,6 +513,42 @@ func printBIOSLanguage(sm *gosmbios.SMBIOS) {
 	for i, l := range lang.Languages {
 		fmt.Printf("    [%d]: %s\n", i+1, l)
 	}
+	fmt.Println()
+}
+
+func printGroupAssociations(sm *gosmbios.SMBIOS) {
+	groups, err := type14.GetAll(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 14: Group Associations")
+	fmt.Println("================================================================================")
+	for _, grp := range groups {
+		fmt.Printf("  %s:\n", grp.GroupName)
+		for _, item := range grp.Items {
+			fmt.Printf("    - Type %d, Handle 0x%04X\n", item.ItemType, item.ItemHandle)
+		}
+	}
+	fmt.Println()
+}
+
+func printEventLog(sm *gosmbios.SMBIOS) {
+	log, err := type15.Get(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 15: System Event Log")
+	fmt.Println("================================================================================")
+	fmt.Printf("  Log Area Length:        %d bytes\n", log.LogAreaLength)
+	fmt.Printf("  Log Header Start:       0x%04X\n", log.LogHeaderStartOffset)
+	fmt.Printf("  Log Data Start:         0x%04X\n", log.LogDataStartOffset)
+	fmt.Printf("  Access Method:          %s\n", log.AccessMethod.String())
+	fmt.Printf("  Log Status:             Full: %v, Valid: %v\n", log.LogStatus.IsFull(), log.LogStatus.IsValid())
+	fmt.Printf("  Supported Log Types:    %d\n", log.NumberOfSupportedLogTypes)
 	fmt.Println()
 }
 
@@ -468,6 +605,62 @@ func printMemoryDevices(sm *gosmbios.SMBIOS) {
 	fmt.Println()
 }
 
+func printMemoryError32(sm *gosmbios.SMBIOS) {
+	errors, err := type18.GetAll(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 18: 32-Bit Memory Error Information")
+	fmt.Println("================================================================================")
+	for i, me := range errors {
+		fmt.Printf("  Error %d:\n", i+1)
+		fmt.Printf("    Error Type:           %s\n", me.ErrorType.String())
+		fmt.Printf("    Error Granularity:    %s\n", me.ErrorGranularity.String())
+		fmt.Printf("    Error Operation:      %s\n", me.ErrorOperation.String())
+	}
+	fmt.Println()
+}
+
+func printMemoryArrayMap(sm *gosmbios.SMBIOS) {
+	maps, err := type19.GetAll(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 19: Memory Array Mapped Address")
+	fmt.Println("================================================================================")
+	for _, m := range maps {
+		fmt.Printf("  Array Handle 0x%04X:\n", m.MemoryArrayHandle)
+		fmt.Printf("    Starting Address:     0x%X\n", m.GetStartingAddressBytes())
+		fmt.Printf("    Ending Address:       0x%X\n", m.GetEndingAddressBytes())
+		fmt.Printf("    Size:                 %s\n", m.GetSizeString())
+		fmt.Printf("    Partition Width:      %d\n", m.PartitionWidth)
+	}
+	fmt.Println()
+}
+
+func printMemoryDeviceMap(sm *gosmbios.SMBIOS) {
+	maps, err := type20.GetAll(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 20: Memory Device Mapped Address")
+	fmt.Println("================================================================================")
+	for _, m := range maps {
+		fmt.Printf("  Device Handle 0x%04X:\n", m.MemoryDeviceHandle)
+		fmt.Printf("    Starting Address:     0x%X\n", m.GetStartingAddressBytes())
+		fmt.Printf("    Ending Address:       0x%X\n", m.GetEndingAddressBytes())
+		fmt.Printf("    Partition Row:        %s\n", m.PartitionRowPositionString())
+		fmt.Printf("    Interleave Position:  %s\n", m.InterleavePositionString())
+	}
+	fmt.Println()
+}
+
 func printPointingDevices(sm *gosmbios.SMBIOS) {
 	devices, err := type21.GetAll(sm)
 	if err != nil {
@@ -505,6 +698,56 @@ func printBatteries(sm *gosmbios.SMBIOS) {
 		fmt.Printf("    Manufacture Date:     %s\n", bat.ManufactureDate)
 		fmt.Println()
 	}
+}
+
+func printSystemReset(sm *gosmbios.SMBIOS) {
+	rst, err := type23.Get(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 23: System Reset")
+	fmt.Println("================================================================================")
+	fmt.Printf("  Enabled:                %v\n", rst.Capabilities.IsEnabled())
+	fmt.Printf("  Boot Option:            %s\n", rst.Capabilities.BootOption().String())
+	fmt.Printf("  Boot Option On Limit:   %s\n", rst.Capabilities.BootOptionOnLimit().String())
+	fmt.Printf("  Watchdog Timer:         %v\n", rst.Capabilities.WatchdogTimerPresent())
+	fmt.Printf("  Reset Count:            %s\n", rst.ResetCountString())
+	fmt.Printf("  Reset Limit:            %s\n", rst.ResetLimitString())
+	fmt.Printf("  Timer Interval:         %s\n", rst.TimerIntervalString())
+	fmt.Printf("  Timeout:                %s\n", rst.TimeoutString())
+	fmt.Println()
+}
+
+func printHardwareSecurity(sm *gosmbios.SMBIOS) {
+	sec, err := type24.Get(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 24: Hardware Security")
+	fmt.Println("================================================================================")
+	fmt.Printf("  Power-on Password:      %s\n", sec.HardwareSettings.PowerOnPasswordStatus().String())
+	fmt.Printf("  Keyboard Password:      %s\n", sec.HardwareSettings.KeyboardPasswordStatus().String())
+	fmt.Printf("  Admin Password:         %s\n", sec.HardwareSettings.AdministratorPasswordStatus().String())
+	fmt.Printf("  Front Panel Reset:      %s\n", sec.HardwareSettings.FrontPanelResetStatus().String())
+	fmt.Println()
+}
+
+func printSystemPowerControls(sm *gosmbios.SMBIOS) {
+	pwr, err := type25.Get(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 25: System Power Controls")
+	fmt.Println("================================================================================")
+	fmt.Printf("  Next Power On:          %s\n", pwr.NextPowerOnString())
+	fmt.Printf("  Is Scheduled:           %v\n", pwr.IsScheduled())
+	fmt.Println()
 }
 
 func printVoltageProbes(sm *gosmbios.SMBIOS) {
@@ -570,6 +813,55 @@ func printTemperatureProbes(sm *gosmbios.SMBIOS) {
 	fmt.Println()
 }
 
+func printCurrentProbes(sm *gosmbios.SMBIOS) {
+	probes, err := type29.GetAll(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 29: Electrical Current Probe")
+	fmt.Println("================================================================================")
+	for _, probe := range probes {
+		fmt.Printf("  %s:\n", probe.Description)
+		fmt.Printf("    Location:             %s\n", probe.LocationAndStatus.Location().String())
+		fmt.Printf("    Status:               %s\n", probe.LocationAndStatus.Status().String())
+		fmt.Printf("    Minimum Value:        %s\n", probe.MinimumValueString())
+		fmt.Printf("    Maximum Value:        %s\n", probe.MaximumValueString())
+		fmt.Printf("    Nominal Value:        %s\n", probe.NominalValueString())
+	}
+	fmt.Println()
+}
+
+func printOOBRemoteAccess(sm *gosmbios.SMBIOS) {
+	oob, err := type30.Get(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 30: Out-of-Band Remote Access")
+	fmt.Println("================================================================================")
+	fmt.Printf("  Manufacturer:           %s\n", oob.ManufacturerName)
+	fmt.Printf("  Inbound Enabled:        %v\n", oob.Connections.InboundEnabled())
+	fmt.Printf("  Outbound Enabled:       %v\n", oob.Connections.OutboundEnabled())
+	fmt.Println()
+}
+
+func printBISEntryPoint(sm *gosmbios.SMBIOS) {
+	bis, err := type31.Get(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 31: Boot Integrity Services Entry Point")
+	fmt.Println("================================================================================")
+	fmt.Printf("  Checksum:               0x%02X\n", bis.Checksum)
+	fmt.Printf("  BIS Entry Point:        0x%08X\n", bis.BISEntryPoint)
+	fmt.Println()
+}
+
 func printBootInfo(sm *gosmbios.SMBIOS) {
 	boot, err := type32.Get(sm)
 	if err != nil {
@@ -580,6 +872,97 @@ func printBootInfo(sm *gosmbios.SMBIOS) {
 	fmt.Println("Type 32: System Boot Information")
 	fmt.Println("================================================================================")
 	fmt.Printf("  Status:                 %s\n", boot.BootStatus.String())
+	fmt.Println()
+}
+
+func printMemoryError64(sm *gosmbios.SMBIOS) {
+	errors, err := type33.GetAll(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 33: 64-Bit Memory Error Information")
+	fmt.Println("================================================================================")
+	for i, me := range errors {
+		fmt.Printf("  Error %d:\n", i+1)
+		fmt.Printf("    Error Type:           %s\n", me.ErrorType.String())
+		fmt.Printf("    Error Granularity:    %s\n", me.ErrorGranularity.String())
+		fmt.Printf("    Error Operation:      %s\n", me.ErrorOperation.String())
+	}
+	fmt.Println()
+}
+
+func printManagementDevices(sm *gosmbios.SMBIOS) {
+	devices, err := type34.GetAll(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 34: Management Device")
+	fmt.Println("================================================================================")
+	for _, dev := range devices {
+		fmt.Printf("  %s:\n", dev.Description)
+		fmt.Printf("    Device Type:          %s\n", dev.DeviceType.String())
+		fmt.Printf("    Address:              0x%08X\n", dev.Address)
+		fmt.Printf("    Address Type:         %s\n", dev.AddressType.String())
+	}
+	fmt.Println()
+}
+
+func printManagementDeviceComponents(sm *gosmbios.SMBIOS) {
+	components, err := type35.GetAll(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 35: Management Device Component")
+	fmt.Println("================================================================================")
+	for _, comp := range components {
+		fmt.Printf("  %s:\n", comp.Description)
+		fmt.Printf("    Management Device:    Handle 0x%04X\n", comp.ManagementDeviceHandle)
+		fmt.Printf("    Component:            Handle 0x%04X\n", comp.ComponentHandle)
+		fmt.Printf("    Threshold:            Handle 0x%04X\n", comp.ThresholdHandle)
+	}
+	fmt.Println()
+}
+
+func printManagementDeviceThresholds(sm *gosmbios.SMBIOS) {
+	thresholds, err := type36.GetAll(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 36: Management Device Threshold Data")
+	fmt.Println("================================================================================")
+	for i, t := range thresholds {
+		fmt.Printf("  Threshold %d:\n", i+1)
+		fmt.Printf("    Lower Non-Critical:   %s\n", t.LowerNonCriticalString())
+		fmt.Printf("    Upper Non-Critical:   %s\n", t.UpperNonCriticalString())
+		fmt.Printf("    Lower Critical:       %s\n", t.LowerCriticalString())
+		fmt.Printf("    Upper Critical:       %s\n", t.UpperCriticalString())
+	}
+	fmt.Println()
+}
+
+func printMemoryChannels(sm *gosmbios.SMBIOS) {
+	channels, err := type37.GetAll(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 37: Memory Channel")
+	fmt.Println("================================================================================")
+	for i, ch := range channels {
+		fmt.Printf("  Channel %d:\n", i+1)
+		fmt.Printf("    Channel Type:         %s\n", ch.ChannelType.String())
+		fmt.Printf("    Max Channel Load:     %d\n", ch.MaximumChannelLoad)
+		fmt.Printf("    Memory Devices:       %d\n", ch.MemoryDeviceCount)
+	}
 	fmt.Println()
 }
 
@@ -627,6 +1010,65 @@ func printPowerSupplies(sm *gosmbios.SMBIOS) {
 	fmt.Println()
 }
 
+func printAdditionalInfo(sm *gosmbios.SMBIOS) {
+	info, err := type40.GetAll(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 40: Additional Information")
+	fmt.Println("================================================================================")
+	for i, ai := range info {
+		fmt.Printf("  Info %d:\n", i+1)
+		fmt.Printf("    Number of Entries:    %d\n", ai.NumberOfEntries)
+		for j, entry := range ai.Entries {
+			fmt.Printf("    Entry %d: Handle 0x%04X, Offset 0x%02X, String: %q\n",
+				j, entry.ReferencedHandle, entry.ReferencedOffset, entry.String)
+		}
+	}
+	fmt.Println()
+}
+
+func printOnboardDevicesExtended(sm *gosmbios.SMBIOS) {
+	devices, err := type41.GetAll(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 41: Onboard Devices Extended Information")
+	fmt.Println("================================================================================")
+	for _, dev := range devices {
+		fmt.Printf("  %s:\n", dev.ReferenceDesignation)
+		fmt.Printf("    Type:                 %s\n", dev.TypeString())
+		fmt.Printf("    Status:               %s\n", dev.StatusString())
+		fmt.Printf("    Instance:             %d\n", dev.DeviceTypeInstance)
+		fmt.Printf("    Bus Address:          %s\n", dev.PCIAddress())
+	}
+	fmt.Println()
+}
+
+func printMCHI(sm *gosmbios.SMBIOS) {
+	mchis, err := type42.GetAll(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 42: Management Controller Host Interface")
+	fmt.Println("================================================================================")
+	for i, mchi := range mchis {
+		fmt.Printf("  Interface %d:\n", i+1)
+		fmt.Printf("    Interface Type:       %s\n", mchi.InterfaceType.String())
+		fmt.Printf("    Protocol Records:     %d\n", len(mchi.ProtocolRecords))
+		for j, pr := range mchi.ProtocolRecords {
+			fmt.Printf("    Protocol %d: %s\n", j, pr.ProtocolType.String())
+		}
+	}
+	fmt.Println()
+}
+
 func printTPM(sm *gosmbios.SMBIOS) {
 	tpm, err := type43.Get(sm)
 	if err != nil {
@@ -642,6 +1084,63 @@ func printTPM(sm *gosmbios.SMBIOS) {
 	fmt.Printf("  Description:            %s\n", tpm.Description)
 	fmt.Printf("  Family:                 %s\n", tpm.Family())
 	fmt.Printf("  Supported:              %v\n", tpm.IsSupported())
+	fmt.Println()
+}
+
+func printProcessorAdditional(sm *gosmbios.SMBIOS) {
+	infos, err := type44.GetAll(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 44: Processor Additional Information")
+	fmt.Println("================================================================================")
+	for i, info := range infos {
+		fmt.Printf("  Info %d:\n", i+1)
+		fmt.Printf("    Referenced Handle:    0x%04X\n", info.ReferencedHandle)
+		fmt.Printf("    Processor Type:       %s\n", info.ProcessorSpecificBlock.ProcessorType.String())
+	}
+	fmt.Println()
+}
+
+func printFirmwareInventory(sm *gosmbios.SMBIOS) {
+	firmwares, err := type45.GetAll(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 45: Firmware Inventory Information")
+	fmt.Println("================================================================================")
+	for _, fw := range firmwares {
+		fmt.Printf("  %s:\n", fw.FirmwareComponentName)
+		fmt.Printf("    Version:              %s\n", fw.FirmwareVersion)
+		fmt.Printf("    Version Format:       %s\n", fw.VersionFormat.String())
+		fmt.Printf("    ID:                   %s\n", fw.FirmwareID)
+		fmt.Printf("    ID Format:            %s\n", fw.FirmwareIDFormat.String())
+		fmt.Printf("    Release Date:         %s\n", fw.ReleaseDate)
+		fmt.Printf("    Manufacturer:         %s\n", fw.Manufacturer)
+		fmt.Printf("    Image Size:           %s\n", fw.ImageSizeString())
+		fmt.Printf("    State:                %s\n", fw.State.String())
+	}
+	fmt.Println()
+}
+
+func printStringProperties(sm *gosmbios.SMBIOS) {
+	props, err := type46.GetAll(sm)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("================================================================================")
+	fmt.Println("Type 46: String Property")
+	fmt.Println("================================================================================")
+	for _, prop := range props {
+		fmt.Printf("  Property ID:            %s\n", prop.StringPropertyID.String())
+		fmt.Printf("    Value:                %s\n", prop.StringPropertyValue)
+		fmt.Printf("    Parent Handle:        0x%04X\n", prop.ParentHandle)
+	}
 	fmt.Println()
 }
 
@@ -661,11 +1160,15 @@ func printEndOfTable(sm *gosmbios.SMBIOS) {
 func printUnknownTypes(sm *gosmbios.SMBIOS, typeCounts map[uint8]int) {
 	// Types we handle
 	handled := map[uint8]bool{
-		0: true, 1: true, 2: true, 3: true, 4: true,
+		0: true, 1: true, 2: true, 3: true, 4: true, 5: true, 6: true,
 		7: true, 8: true, 9: true, 10: true, 11: true,
-		12: true, 13: true, 16: true, 17: true, 21: true,
-		22: true, 26: true, 27: true, 28: true, 32: true,
-		38: true, 39: true, 41: true, 43: true, 127: true,
+		12: true, 13: true, 14: true, 15: true, 16: true,
+		17: true, 18: true, 19: true, 20: true, 21: true,
+		22: true, 23: true, 24: true, 25: true, 26: true,
+		27: true, 28: true, 29: true, 30: true, 31: true, 32: true,
+		33: true, 34: true, 35: true, 36: true, 37: true,
+		38: true, 39: true, 40: true, 41: true, 42: true, 43: true,
+		44: true, 45: true, 46: true, 127: true,
 	}
 
 	hasUnknown := false

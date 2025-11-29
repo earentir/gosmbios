@@ -34,3 +34,6 @@ examples-linux
 cmd/debug/debug
 debug-linux
 examples/examples
+cmd/info/info
+cmd/examples/examples
+cmd/dump/dump
